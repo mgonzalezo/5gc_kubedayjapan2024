@@ -1,42 +1,18 @@
 # KubeDay Japan 2024
 
-Below are the steps to setup and execute the CDK project
+Below are the steps to initialize a base app using typescript language, then you will install related EKS blueprints
 
 ```sh
-python -m venv .venv
-
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # macOS/Linux
-
-pip install -r requirements.txt
-
-cdk bootstrap aws://ACCOUNT_ID/REGION
-
-```
-In case you get a Warning Message:
-
-```sh
-
-git config --global core.autocrlf input
-git add --renormalize .
-git commit -m "Normalize all line endings to LF"
+cdk init app --language typescript
+npm i @aws-quickstart/eks-blueprints
 
 ```
 
-Add a .gitattributes file
+Then you will execute this command to prepare your AWS environment (specified by the AWS account ID and region) for deployment of CDK applications. It creates necessary resources, such as an S3 bucket for storing deployment assets. You then export the AWS_REGION variable and proceed with the CDK deployment.
 
 ```sh
-# Ensure consistent line endings
-* text=auto
-*.bat text eol=crlf
-*.sh text eol=lf
-*.py text eol=lf
-*.md text eol=lf
-*.json text eol=lf
-
-```
-Finally deploy the application
-
-```sh
+cdk bootstrap aws://615956341945/us-east-1
+export AWS_REGION=us-east-1
 cdk deploy
+
 ```
