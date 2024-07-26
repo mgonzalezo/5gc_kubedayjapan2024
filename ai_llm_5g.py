@@ -21,8 +21,6 @@ model_kwargs =  {
     "max_tokens": 2048
 }
 
-# ------------------------------------------------------
-# LangChain - RAG chain with citations
 
 template = '''Answer the question based only on the following context:
 {context}
@@ -31,9 +29,9 @@ Question: {question}'''
 
 prompt = ChatPromptTemplate.from_template(template)
 
-# Amazon Bedrock - KnowledgeBase Retriever 
+
 retriever = AmazonKnowledgeBasesRetriever(
-    knowledge_base_id="UNIUCLBP1E", # 👈 Set your Knowledge base ID
+    knowledge_base_id="UNIUCLBP1E",
     retrieval_config={"vectorSearchConfiguration": {"numberOfResults": 4}},
 )
 
