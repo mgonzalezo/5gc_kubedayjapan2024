@@ -1,8 +1,4 @@
-# Welcome to your CDK TypeScript project
-
-This is a blank project for CDK development with TypeScript.
-
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+# Kubeday Japan 2024
 
 ## Useful commands
 
@@ -148,9 +144,9 @@ NAME                           STATUS   ROLES    AGE   VERSION
 ip-10-0-104-250.ec2.internal   Ready    <none>   11d   v1.29.3-eks-ae9a62a
 ip-10-0-187-88.ec2.internal    Ready    <none>   13d   v1.29.3-eks-ae9a62a
 ```
-### EKS Deployment - CDK
+### EKS Open5G AI implementation
 
-Once the Kubernetes cluster is deployed (either through EKS or ROSA), we can proceed with the 5G application installation:
+Once the Kubernetes cluster is deployed, we can proceed with the 5G application installation:
 
 #### Deployment of NGC and Registration of Subscribers
 
@@ -196,3 +192,4 @@ Check that the AMF (Access and Mobility Management Function) accepts and adds th
 ```sh
 kubectl logs deployment/open5gs-amf -f
 ```
+
