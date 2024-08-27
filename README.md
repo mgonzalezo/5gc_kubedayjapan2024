@@ -1,18 +1,198 @@
-# KubeDay Japan 2024
+# Welcome to your CDK TypeScript project
 
-Below are the steps to initialize a base app using typescript language, then you will install related EKS blueprints
+This is a blank project for CDK development with TypeScript.
 
-```sh
-cdk init app --language typescript
-npm i @aws-quickstart/eks-blueprints
+The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
+## Useful commands
+
+* `npm run build`   compile typescript to js
+* `npm run watch`   watch for changes and compile
+* `npm run test`    perform the jest unit tests
+* `npx cdk deploy`  deploy this stack to your default AWS account/region
+* `npx cdk diff`    compare deployed stack with current state
+* `npx cdk synth`   emits the synthesized CloudFormation template
+
+## 5G Cluster on EKS + AI Issue Navigation
+
+### EKS Deployment - CDK
+
+Here are the steps to initialize a base app using typescript language, then you will install related EKS blueprints
+
+1. Install Node Version Manager (n) `npm install -g n`
+
+2. Install Stable Version of Node.js `n stable`
+
+3. Install AWS CDK `npm install -g aws-cdk@2.147.3`
+
+4. Verify AWS CDK Installation `cdk --version`
+
+5. Initialize sample app with `cdk init app --language typescript`
+
+6. Install the eks-blueprints NPM package `npm i @aws-quickstart/eks-blueprints`
+
+7. Modify Following ts files:
+
+#### bin/my-blueprints.ts Code
+
+```typescript
+import * as cdk from 'aws-cdk-lib';
+import * as blueprints from '@aws-quickstart/eks-blueprints';
+
+class FluentBitAddOn implements blueprints.ClusterAddOn {
+    deploy(clusterInfo: blueprints.ClusterInfo): void {
+        const cluster = clusterInfo.cluster;
+        
+        // Define the Helm chart for Fluent Bit
+        cluster.addHelmChart('fluent-bit', {
+            chart: 'fluent-bit',
+            release: 'fluent-bit',
+            repository: 'https://fluent.github.io/helm-charts',
+            namespace: 'kube-system',
+            values: {
+                serviceAccount: {
+                    create: true,
+                    name: 'fluent-bit'
+                },
+                config: {
+                    service: {
+                        Flush: 1,
+                        Log_Level: 'info',
+                    },
+                    inputs: [
+                        {
+                            name: "tail",
+                            path: "/var/log/containers/*.log",
+                            parser: "docker"
+                        }
+                    ],
+                    outputs: [
+                        {
+                            name: "cloudwatch",
+                            match: "*",
+                            region: region,
+                            log_group_name: "/aws/eks/fluent-bit-cloudwatch",
+                            log_stream_prefix: "fluent-bit-",
+                        }
+                    ]
+                }
+            }
+        });
+    }
+}
+
+const app = new cdk.App();
+const account = '615956341945';
+const region = 'us-east-1';
+const version = 'auto';
+
+blueprints.HelmAddOn.validateHelmVersions = true; // optional if you would like to check for newer versions
+
+const addOns: Array<blueprints.ClusterAddOn> = [
+    new blueprints.addons.ArgoCDAddOn(),
+    new blueprints.addons.MetricsServerAddOn(),
+    new blueprints.addons.ClusterAutoScalerAddOn(),
+    new blueprints.addons.AwsLoadBalancerControllerAddOn(),
+    new blueprints.addons.VpcCniAddOn(),
+    new blueprints.addons.CoreDnsAddOn(),
+    new blueprints.addons.KubeProxyAddOn(),
+    new FluentBitAddOn() // Adding Fluent Bit
+];
+
+const stack = blueprints.EksBlueprint.builder()
+    .account(account)
+    .region(region)
+    .version(version)
+    .addOns(...addOns)
+    .useDefaultSecretEncryption(true) // set to false to turn secret encryption off (non-production/demo cases)
+    .build(app, 'eks-kubeday-2024');
+```
+#### lib/my-blueprints-stack.ts Code
+
+```typescript
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+// import * as sqs from 'aws-cdk-lib/aws-sqs';
+
+export class MyBlueprintsStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+
+  }
+}
 ```
 
-Then you will execute this command to prepare your AWS environment (specified by the AWS account ID and region) for deployment of CDK applications. It creates necessary resources, such as an S3 bucket for storing deployment assets. You then export the AWS_REGION variable and proceed with the CDK deployment.
+8. Bootstrap your environment with the following command: `cdk bootstrap aws://<your-account-number>/<region-to-bootstrap>`
+
+9. If no errors up to this part, proceed with the CDK deploy operation: `cdk deploy`
+
+10. Once the deployment is completed, you will similar output in your terminal:
+
+```Bash
+Outputs:
+east-test-1.easttest1ClusterName8D8E5E5E = <region>
+east-test-1.easttest1ConfigCommand25ABB520 = aws eks update-kubeconfig --name <region> --region <region>--role-arn <ROLE_ARN>
+east-test-1.easttest1GetTokenCommand337FE3DD = aws eks get-token --cluster-name <region> --region <region> --role-arn <ROLE_ARN>
+
+Stack ARN:
+arn:aws:cloudformation:us-east-1:115717706081:stack/<region>/ARN
+```
+
+11. To update your Kubernetes config for you new cluster, execute the `aws eks update-kubeconfig` command show in step 10.
+
+12. Now you should be able to execute kubectl commands and start deploying applications
+
+```Shell
+kubectl get nodes
+NAME                           STATUS   ROLES    AGE   VERSION
+ip-10-0-104-250.ec2.internal   Ready    <none>   11d   v1.29.3-eks-ae9a62a
+ip-10-0-187-88.ec2.internal    Ready    <none>   13d   v1.29.3-eks-ae9a62a
+```
+### EKS Deployment - CDK
+
+Once the Kubernetes cluster is deployed (either through EKS or ROSA), we can proceed with the 5G application installation:
+
+#### Deployment of NGC and Registration of Subscribers
+
+1. To pull the Helm charts for `open5gs` and `srsran-5g-zmq` from the OCI registry, use the following commands:
 
 ```sh
-cdk bootstrap aws://615956341945/us-east-1
-export AWS_REGION=us-east-1
-cdk deploy
+helm pull oci://registry-1.docker.io/gradiant/open5gs --version 2.2.0
+helm pull oci://registry-1.docker.io/gradiant/srsran-5g-zmq --version 1.0.0
+```
+2. Deployment of NGC and Registration of Subscribers
 
+To deploy the NGC (Next Generation Core) and register subscribers, follow these steps:
+
+##### Step 1: Deploy the NGC (open5gs)
+
+Use the following Helm command to install the `open5gs` chart. This deployment uses a specific values file provided by Gradiant.
+
+```sh
+helm install open5gs oci://registry-1.docker.io/gradiant/open5gs --version 2.2.0 --values https://gradiant.github.io/5g-charts/docs/open5gs-srsran-5g-zmq/ngc-values.yaml
+```
+
+##### Step 2:  Deploy the RAN (srsran-5g-zmq)
+```sh
+helm install srsran-5g-zmq oci://registry-1.docker.io/gradiant/srsran-5g-zmq --version 1.0.0
+```
+
+#### Verify Deployment
+
+After deploying the NGC and RAN, follow these steps to verify the deployment and ensure proper connectivity:
+
+### Step 1: Verify Connection between SMF and UPF (C-Plane and U-Plane of NGC)
+
+Check that the SMF (Session Management Function) gets associated with the UPF’s (User Plane Function) address:
+
+```sh
+kubectl logs deployment/open5gs-smf -f
+```
+
+### Step 2: Verify Connection between AMF and gNodeB
+
+Check that the AMF (Access and Mobility Management Function) accepts and adds the gNodeB:
+
+```sh
+kubectl logs deployment/open5gs-amf -f
 ```
