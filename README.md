@@ -53,7 +53,7 @@ class FluentBitAddOn implements blueprints.ClusterAddOn {
                 config: {
                     service: {
                         Flush: 1,
-                        Log_Level: 'info',
+                        Log_Level: 'debug',
                     },
                     inputs: [
                         {
@@ -67,8 +67,7 @@ class FluentBitAddOn implements blueprints.ClusterAddOn {
                             name: "cloudwatch",
                             match: "*",
                             region: region,
-                            log_group_name: "/aws/eks/fluent-bit-cloudwatch",
-                            log_stream_prefix: "fluent-bit-",
+                            log_group_name: "/aws/containerinsights/eks-blueprint/application"
                         }
                     ]
                 }
@@ -78,7 +77,7 @@ class FluentBitAddOn implements blueprints.ClusterAddOn {
 }
 
 const app = new cdk.App();
-const account = '615956341945';
+const account = 'ACCOUNT_ID';
 const region = 'us-east-1';
 const version = 'auto';
 
@@ -191,5 +190,97 @@ Check that the AMF (Access and Mobility Management Function) accepts and adds th
 
 ```sh
 kubectl logs deployment/open5gs-amf -f
+```
+
+### AWS Services Implementation
+
+#### AWS Lambda
+
+
+```python
+import boto3
+import os
+import datetime
+
+"""
+This portion will obtain the Environment variables from AWS Lambda.
+"""
+
+GROUP_NAME = os.environ['GROUP_NAME']
+DESTINATION_BUCKET = os.environ['DESTINATION_BUCKET']
+PREFIX = os.environ['PREFIX']
+NDAYS = os.environ['NDAYS']
+nDays = int(NDAYS)
+
+currentTime = datetime.datetime.now()
+StartDate = currentTime - datetime.timedelta(days=nDays)
+EndDate = currentTime - datetime.timedelta(days=nDays - 1)
+
+
+"""
+Convert the from & to Dates to milliseconds
+"""
+
+fromDate = int(StartDate.timestamp() * 1000)
+toDate = int(EndDate.timestamp() * 1000)
+
+
+BUCKET_PREFIX = os.path.join(PREFIX, StartDate.strftime('%Y{0}%m{0}%d').format(os.path.sep))
+
+
+def lambda_handler(event, context):
+    client = boto3.client('logs')
+    client.create_export_task(
+         logGroupName=GROUP_NAME,
+         fromTime=fromDate,
+         to=toDate,
+         destination=DESTINATION_BUCKET,
+         destinationPrefix=BUCKET_PREFIX
+        )
+
+```
+
+#### AWS S3
+
+1. Create the S3 bucket in the us-east-1 region use the following command:
+
+```
+aws s3 mb s3://kubeday-5gcore-logs-ingestion --region us-east-1
+
+```
+
+2. Upload the zip files to your S3 bucket using AWS CLI command:
+
+```
+aws s3 cp /path/to/your/file.zip s3://kubeday-5gcore-logs-ingestion/
+
+```
+or
+
+```
+aws s3 cp /path/to/your/folder s3://kubeday-5gcore-logs-ingestion/ --recursive --exclude "*" --include "*.zip"
+```
+
+#### Amazon Bedrock
+
+Amazon Bedrock is a fully managed service that provides access to pre-trained foundation models from leading AI companies, enabling developers to build and scale generative AI applications without managing infrastructure.
+
+##### Knowledge Base
+
+![Knowledge base Modification](5gc_kubedayjapan2024\amazon_bedrock.jpg "Amazon Bedrock Knowledge base")
+
+
+##### Knowledge Base ID
+
+![Knowledge base ID](5gc_kubedayjapan2024\amazon_bedrock_id.jpg "Amazon Bedrock Knowledge base ID")
+
+
+### API implementation and tests
+
+
+To run the backend API, replace the Knowledge Base ID with your own ID and run the command
+
+```
+python 5gc_kubedayjapan2024/ai_llm_5g.py
 ```
 
