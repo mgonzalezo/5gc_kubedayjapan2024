@@ -1,13 +1,28 @@
 # Kubeday Japan 2024
 
-## Useful commands
+# Table of Contents
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+- [Kubeday Japan 2024](#kubeday-japan-2024)
+  - [5G Cluster on EKS + AI Issue Navigation](#5g-cluster-on-eks--ai-issue-navigation)
+    - [EKS Deployment - CDK](#eks-deployment---cdk)
+      - [bin/my-blueprints.ts Code](#binmy-blueprintsts-code)
+      - [lib/my-blueprints-stack.ts Code](#libmy-blueprints-stackts-code)
+    - [EKS Open5G SW installation](#eks-open5g-sw-installation)
+      - [Deployment of NGC and Registration of Subscribers](#deployment-of-ngc-and-registration-of-subscribers)
+        - [Deploy the NGC (open5gs)](#step-1-deploy-the-ngc-open5gs)
+        - [Deploy the RAN (srsran-5g-zmq)](#step-2-deploy-the-ran-srsran-5g-zmq)
+      - [Verify Deployment](#verify-deployment)
+        - [Verify Connection between SMF and UPF](#step-1-verify-connection-between-smf-and-upf-c-plane-and-u-plane-of-ngc)
+        - [Verify Connection between AMF and gNodeB](#step-2-verify-connection-between-amf-and-gnodeb)
+    - [AWS Services Implementation](#aws-services-implementation)
+      - [AWS Lambda](#aws-lambda)
+      - [AWS S3](#aws-s3)
+      - [Amazon Bedrock](#amazon-bedrock)
+        - [Knowledge Base](#knowledge-base)
+        - [Knowledge Base ID](#knowledge-base-id)
+    - [API implementation and tests](#api-implementation-and-tests)
+
+
 
 ## 5G Cluster on EKS + AI Issue Navigation
 
@@ -143,7 +158,7 @@ NAME                           STATUS   ROLES    AGE   VERSION
 ip-10-0-104-250.ec2.internal   Ready    <none>   11d   v1.29.3-eks-ae9a62a
 ip-10-0-187-88.ec2.internal    Ready    <none>   13d   v1.29.3-eks-ae9a62a
 ```
-### EKS Open5G AI implementation
+### EKS Open5G SW installation:
 
 Once the Kubernetes cluster is deployed, we can proceed with the 5G application installation:
 
@@ -176,7 +191,7 @@ helm install srsran-5g-zmq oci://registry-1.docker.io/gradiant/srsran-5g-zmq --v
 
 After deploying the NGC and RAN, follow these steps to verify the deployment and ensure proper connectivity:
 
-### Step 1: Verify Connection between SMF and UPF (C-Plane and U-Plane of NGC)
+##### Step 1: Verify Connection between SMF and UPF (C-Plane and U-Plane of NGC)
 
 Check that the SMF (Session Management Function) gets associated with the UPF’s (User Plane Function) address:
 
@@ -184,7 +199,7 @@ Check that the SMF (Session Management Function) gets associated with the UPF’
 kubectl logs deployment/open5gs-smf -f
 ```
 
-### Step 2: Verify Connection between AMF and gNodeB
+##### Step 2: Verify Connection between AMF and gNodeB
 
 Check that the AMF (Access and Mobility Management Function) accepts and adds the gNodeB:
 
@@ -196,6 +211,7 @@ kubectl logs deployment/open5gs-amf -f
 
 #### AWS Lambda
 
+Here is the code we implemented to filter Fluentbit/Cloudwatch logs:
 
 ```python
 import boto3
@@ -267,12 +283,12 @@ Amazon Bedrock is a fully managed service that provides access to pre-trained fo
 
 ##### Knowledge Base
 
-![Knowledge base Modification](5gc_kubedayjapan2024\amazon_bedrock.jpg "Amazon Bedrock Knowledge base")
+![Knowledge base Modification](amazon_bedrock.jpg "Amazon Bedrock Knowledge base")
 
 
 ##### Knowledge Base ID
 
-![Knowledge base ID](5gc_kubedayjapan2024\amazon_bedrock_id.jpg "Amazon Bedrock Knowledge base ID")
+![Knowledge base ID](amazon_bedrock_id.jpg "Amazon Bedrock Knowledge base ID")
 
 
 ### API implementation and tests
@@ -284,3 +300,4 @@ To run the backend API, replace the Knowledge Base ID with your own ID and run t
 python 5gc_kubedayjapan2024/ai_llm_5g.py
 ```
 
+Happy Learning 🚀
